@@ -76,9 +76,19 @@ Used: runner 20000/1024 (no simplification), gate 20000/1024, buoy 10000/512, je
 
 `docs/visual-targets/sr-target-0{1..4}-*.jpg`, ChatGPT image generation in the user's Chrome, 2026-10-25, chat https://chatgpt.com/c/6ade725f-ca40-83ed-aed0-68bd63dc9b42. Prompts and per-image notes in `docs/visual-targets/PROMPTS.md`.
 
+## How the models are used in the game
+
+- **Runner** (`src/runner.ts`): scaled to 2.1 m, turned to run away from the camera. Clips are matched by name: `run` loops (sped up with the tempo), `jump` plays when a gate raises your number, `dive` when it lowers it, `hit_to_body_01` on a crash, `cheer` at the finish. The hips' x/z translation is stripped from all clips so crossfades don't slide (the `run` clip held the hips 0.52 forward). If the file is missing, a procedural stand-in runs instead.
+- **Gate arch**: one clone per lane per row, emissive from its own base colour so the baked neon glows under bloom; the label panel is procedural and sits in front of the pillars.
+- **Jellyfish**: 14 clones below the waterline around the camera's depth, made translucent and emissive in three tints, pulsing procedurally.
+- **Buoy**: lighthouse buoys on both sides of the track at zero (sea levels only).
+- **Polar hut**: Ice Station set dressing.
+- **Manta**: five neon gliders above the waterline (sea levels), rotated −90° about X to fly flat.
+- Nothing generated is a collider or shows a number: gates' labels, tunnel walls and slots, the ruler/thermometer and the readout are procedural and come from `src/rules.ts`.
+
 ## Music and sound
 
-Procedural WebAudio in `src/audio.ts` (the lead writes it): 4/4 beat (kick, clap, hats, bass arpeggio) at 112 / 92 / 128 BPM, low-pass filter + bubble blips under the waterline, pitched gate blips, tunnel whoosh + chord, crash glass smash + record-scratch slow-down. No audio files are bundled or fetched; no third-party music.
+Procedural WebAudio in `src/audio.ts`: 4/4 beat (kick, clap, hats, bass, an arpeggio that comes in with the streak, a pad per bar) at 100 BPM normal / 80 slow (Ice Station ×1.15: 115 / 92), scheduled from the simulation clock so gates land on the beat, low-pass filter + bubble blips under the waterline, pitched gate blips, tunnel whoosh + chord, crash glass smash + record-scratch slow-down. No audio files are bundled or fetched; no third-party music.
 
 ## Fonts
 

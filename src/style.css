@@ -139,7 +139,7 @@ body.reduced *, body.reduced *::before { animation-duration: 0.01ms !important; 
   .pill { font-size: 17px; padding: 4px 9px; border-radius: 10px; }
   .level-pill { top: max(8px, env(safe-area-inset-top)); right: 8px; font-size: 14px; padding: 5px 9px 7px; }
   .dots i { width: 8px; height: 8px; }
-  .ruler { top: 17vh; height: 52vh; left: 2px; }
+  .ruler { top: calc(max(8px, env(safe-area-inset-top)) + 110px); height: 34vh; left: 2px; overflow: hidden; }
   .target-chip { display: block; }
   .ctl .lbl { white-space: nowrap; }
   .ctl.ghost .hold { display: none; }
@@ -155,4 +155,24 @@ body.reduced *, body.reduced *::before { animation-duration: 0.01ms !important; 
   .card { padding: 18px 14px 14px; }
   .card h2 { font-size: 34px; }
   .rank { font-size: 90px; }
+}
+
+/* ---------- short screens (phones in landscape) ---------- */
+@media (max-height: 500px) and (min-width: 761px) {
+  .logo { display: none; }
+  .pill { font-size: 18px; padding: 3px 10px; }
+  .level-pill { font-size: 15px; padding: 4px 10px 6px; }
+  .dots i { width: 8px; height: 8px; }
+  .ruler { top: 8px; height: calc(100vh - 16px); }
+  .readout { font-size: 54px; }
+  .controls { left: auto; right: 10px; transform: none; bottom: max(8px, env(safe-area-inset-bottom)); gap: 8px; }
+  .ctl { height: 46px; min-width: 46px; font-size: 15px; }
+  .ctl.round { width: 46px; }
+  .ctl.ghost .hold { display: none; }
+  .banner { font-size: 30px; top: 18%; }
+  .crash { top: 56px; width: min(380px, 46vw); padding: 8px 12px; }
+  .crash .boom { font-size: 32px; }
+  .crash .math { font-size: 21px; margin: 4px 0; }
+  .crash .rule, .crash .need { font-size: 15px; }
+  .crash .respawn { margin-top: 4px; }
 }

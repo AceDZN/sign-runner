@@ -1,0 +1,113 @@
+[
+  {
+    "check": "first 30 s: two correct gates, below the waterline, a crash, respawn",
+    "crash": {
+      "result": -8,
+      "tunnel": -6,
+      "lines": [
+        "−2 + (−6) = −8"
+      ]
+    },
+    "crashPhase": "crash",
+    "respawnPhase": "run",
+    "respawnValue": -2,
+    "checkpoint": -2,
+    "elapsedNote": "see sim time in log"
+  },
+  {
+    "check": "ghost preview",
+    "held": true,
+    "preview": [
+      2,
+      -6,
+      -8
+    ],
+    "multiplier": 1,
+    "hintUsed": true
+  },
+  {
+    "check": "all levels played to the end through lane inputs",
+    "results": [
+      {
+        "level": 1,
+        "phase": "done",
+        "mode": "results",
+        "rank": "S",
+        "crashes": 0,
+        "hints": 0,
+        "score": 1400
+      },
+      {
+        "level": 2,
+        "phase": "done",
+        "mode": "results",
+        "rank": "A",
+        "crashes": 1,
+        "hints": 0,
+        "score": 1500
+      },
+      {
+        "level": 3,
+        "phase": "done",
+        "mode": "results",
+        "rank": "S",
+        "crashes": 0,
+        "hints": 0,
+        "score": 1700
+      },
+      {
+        "level": 4,
+        "phase": "done",
+        "mode": "results",
+        "rank": "S",
+        "crashes": 0,
+        "hints": 0,
+        "score": 2000
+      },
+      {
+        "level": 5,
+        "phase": "done",
+        "mode": "results",
+        "rank": "S",
+        "crashes": 0,
+        "hints": 0,
+        "score": 900
+      },
+      {
+        "level": 6,
+        "phase": "done",
+        "mode": "results",
+        "rank": "S",
+        "crashes": 0,
+        "hints": 0,
+        "score": 2000
+      },
+      {
+        "level": 7,
+        "phase": "done",
+        "mode": "results",
+        "rank": "S",
+        "crashes": 0,
+        "hints": 0,
+        "score": 1400
+      }
+    ]
+  },
+  {
+    "check": "no ghost on the transfer level",
+    "ghostHeld": false,
+    "hints": 0
+  },
+  {
+    "check": "pause",
+    "mode": "paused"
+  },
+  {
+    "check": "mobile tap right moves one lane right",
+    "before": 1,
+    "after": 2
+  },
+  {
+    "consoleErrors": []
+  }
+]

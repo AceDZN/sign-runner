@@ -50,6 +50,19 @@ interface Burst {
 
 const tmpV = new THREE.Vector3();
 
+/** True when a geometry or texture belongs to a loaded model (shared by its clones). */
+function isFromModel(res: THREE.BufferGeometry | THREE.Texture, model: THREE.Object3D): boolean {
+  let found = false;
+  model.traverse((o) => {
+    const m = o as THREE.Mesh;
+    if (!m.isMesh || found) return;
+    if (m.geometry === res) found = true;
+    const mat = m.material as THREE.MeshStandardMaterial;
+    if (mat && (mat.map === res || mat.normalMap === res || mat.roughnessMap === res || mat.metalnessMap === res || mat.emissiveMap === res)) found = true;
+  });
+  return found;
+}
+
 let dotTex: THREE.Texture | null = null;
 function dotTexture(): THREE.Texture {
   if (dotTex) return dotTex;
@@ -424,6 +437,18 @@ export class World {
   // ---------------------------------------------------------------- level
   buildLevel(level: Level, layout: SegmentLayout[]): void {
     this.theme = level.skin;
+    // free the previous level's GPU resources (arch clones share the model's geometry, so keep those)
+    this.levelGroup.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (!m.isMesh) return;
+      const mats = Array.isArray(m.material) ? m.material : [m.material];
+      for (const mat of mats) {
+        const map = (mat as THREE.MeshBasicMaterial).map;
+        if (map && !(this.gateModel && isFromModel(map, this.gateModel))) map.dispose();
+        mat.dispose();
+      }
+      if (!(this.gateModel && isFromModel(m.geometry, this.gateModel))) m.geometry.dispose();
+    });
     this.levelGroup.clear();
     this.rows = [];
     this.tunnels = [];

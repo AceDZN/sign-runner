@@ -9,6 +9,12 @@
 - 3D scene, HUD, audio, generator. Headless play-through found a real bug: finishing a level crashed the scene (segment index ran past the end). Fixed in the sim, with a test.
 - Visual fixes from the first captures: tunnel walls are bounded to reachable heights (they read as towers before), road bloom calmed, bigger gate labels, camera raised so the runner doesn't cover the middle label, altitude unit raised from 1.2 m to 2 m so the camera dives with you at −1, walls hidden once you're through (camera clipped into them), brighter sea.
 
-## Next
+- Rigged Tripo runner integrated (run/jump/dive/hit/cheer; hips root motion stripped), plus arch, buoy, jellyfish, manta, polar hut.
+- Independent math review (`docs/MATH_REVIEW.md`): all 60 segments verified; applied the must-fixes (four wrong Hebrew rule strings, clipped labels, generator ±1 lock-in and zero gates) and most should-fixes (plural address, reversed-order crash message, stronger level-3 traps, real order puzzle in level 5 segment 3, Workbook links, visible ציר המספרים / ערך מוחלט, ghost-heavy runs rank lower).
+- Visual review against the mockups (`docs/VISUAL_REVIEW.md`), phone portrait/landscape layouts, 60 fps measured on this Mac, all 7 levels played to the end in real Chrome.
 
-- Integrate the rigged runner when exported; visual review vs. mockups; math review fixes; mobile check; docs; push (pending permission).
+## Open
+
+- Public GitHub repo: still needs the user's go-ahead (see above).
+- Not verified: fun and learning with real students, sound by ear, a real phone.
+- Ideas not built: endless mode with streak records; coral/light shafts underwater; a crisper ice level.
