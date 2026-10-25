@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#120526" />
+    <title>רץ הסימנים · Sign Runner</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23120526'/%3E%3Ctext x='32' y='44' font-size='34' text-anchor='middle' fill='%233cf2ff' font-family='sans-serif' font-weight='900'%3E%C2%B1%3C/text%3E%3C/svg%3E" />
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="game" aria-label="רץ הסימנים: משחק"></canvas>
+      <div id="hud" hidden>
+        <div class="logo" aria-hidden="true"><span class="logo-he">רץ הסימנים</span><span class="logo-en">Sign Runner</span></div>
+        <div class="pills">
+          <div class="pill score"><bdi id="score" dir="ltr">0</bdi></div>
+          <div class="pill mult"><bdi id="mult" dir="ltr">×1</bdi></div>
+          <div class="pill combo" id="comboPill"><span class="fire" aria-hidden="true">🔥</span> <span>רצף</span> <bdi id="combo" dir="ltr">0</bdi></div>
+        </div>
+        <div class="level-pill">
+          <div id="levelName">שלב 1 · קו המים</div>
+          <div id="dots" class="dots" dir="ltr"></div>
+        </div>
+        <svg id="ruler" class="ruler" viewBox="0 0 160 560" preserveAspectRatio="xMinYMid meet" aria-label="ציר המספרים"></svg>
+        <div id="readout" class="readout" dir="ltr">0</div>
+        <div id="banner" class="banner" hidden></div>
+        <div class="controls">
+          <button id="ghostBtn" class="ctl ghost" type="button" aria-label="רוח רפאים: הצצה לתוצאות (מוריד את המכפיל)"><span class="ico">👻</span><span class="lbl">רוח רפאים</span><span class="hold" aria-hidden="true">החזיקו</span></button>
+          <button id="pauseBtn" class="ctl round" type="button" aria-label="השהיה">❚❚</button>
+          <button id="muteBtn" class="ctl round" type="button" aria-label="השתקה">🔊</button>
+        </div>
+        <div id="crash" class="crash" hidden role="status" aria-live="polite">
+          <div class="boom">בום!</div>
+          <div id="crashMath" class="math" dir="ltr"></div>
+          <div id="crashRule" class="rule"></div>
+          <div id="crashNeed" class="need"></div>
+          <div id="crashFix" class="fix" hidden></div>
+          <div class="respawn"><span>חוזרים לנקודת השמירה</span> <span id="crashCount" class="count" dir="ltr">3</span></div>
+        </div>
+        <div id="lanesTouch" class="lanes-touch" aria-hidden="true"></div>
+      </div>
+
+      <section id="title" class="screen title">
+        <div class="title-card">
+          <h1><span class="logo-he big">רץ הסימנים</span><span class="logo-en">Sign Runner</span></h1>
+          <p class="tag">המספר שלך הוא הגובה שלך. מעל אפס: שמי ניאון. מתחת לאפס: מתחת לים.<br />בחרו את השער שמביא אתכם בדיוק לגובה המנהרה.</p>
+          <div id="levelGrid" class="level-grid"></div>
+          <div class="opts">
+            <div class="opt" role="group" aria-label="קצב">
+              <span>קצב:</span>
+              <button type="button" class="seg" data-tempo="normal">רגיל</button>
+              <button type="button" class="seg" data-tempo="slow">איטי</button>
+            </div>
+            <label class="opt"><input type="checkbox" id="reducedMotion" /> פחות תנועה</label>
+            <label class="opt"><input type="checkbox" id="muteOpt" /> בלי צלילים</label>
+          </div>
+          <p class="keys">מקשים: <kbd>←</kbd> <kbd>→</kbd> או <kbd>A</kbd> <kbd>D</kbd> להחלפת מסלול · <kbd>Shift</kbd> (החזיקו) רוח רפאים · <kbd>P</kbd> השהיה · <kbd>M</kbd> השתקה<br />בטלפון: החליקו או הקישו בצד שמאל/ימין · שתי אצבעות = רוח רפאים</p>
+        </div>
+      </section>
+
+      <section id="intro" class="screen intro" hidden>
+        <div class="card">
+          <div id="introNum" class="eyebrow">שלב 1</div>
+          <h2 id="introName">קו המים</h2>
+          <div id="introSub" class="sub"></div>
+          <p id="introRule" class="rule"></p>
+          <div id="introEx" class="ex" dir="ltr"></div>
+          <p id="introNote" class="note"></p>
+          <button id="goBtn" type="button" class="big-btn">יאללה, רצים!</button>
+          <button id="backBtn1" type="button" class="link-btn">חזרה לתפריט</button>
+        </div>
+      </section>
+
+      <section id="results" class="screen results" hidden>
+        <div class="card">
+          <div id="resEyebrow" class="eyebrow"></div>
+          <div id="resRank" class="rank">S</div>
+          <ul class="stats">
+            <li><span>ניקוד</span> <bdi id="resScore" dir="ltr">0</bdi></li>
+            <li><span>רצף הכי ארוך</span> <bdi id="resCombo" dir="ltr">0</bdi></li>
+            <li><span>התנגשויות</span> <bdi id="resCrashes" dir="ltr">0</bdi></li>
+            <li><span>רוח רפאים</span> <bdi id="resHints" dir="ltr">0</bdi></li>
+            <li><span>מנהרות בניסיון ראשון בלי עזרה</span> <bdi id="resFirst" dir="ltr">0</bdi></li>
+          </ul>
+          <p id="resNote" class="note"></p>
+          <button id="nextBtn" type="button" class="big-btn">לשלב הבא</button>
+          <button id="freshBtn" type="button" class="mid-btn" data-role="fresh">שוב, עם תרגילים חדשים</button>
+          <button id="retryBtn" type="button" class="mid-btn">שוב, אותו מסלול</button>
+          <button id="backBtn2" type="button" class="link-btn">חזרה לתפריט</button>
+        </div>
+      </section>
+
+      <section id="paused" class="screen paused" hidden>
+        <div class="card">
+          <h2>הפסקה</h2>
+          <button id="resumeBtn" type="button" class="big-btn">ממשיכים</button>
+          <button id="restartBtn" type="button" class="mid-btn">מתחילים את השלב מחדש</button>
+          <button id="quitBtn" type="button" class="link-btn">חזרה לתפריט</button>
+        </div>
+      </section>
+
+      <div id="glLost" class="screen" hidden><div class="card"><h2>הגרפיקה נעצרה</h2><p>הדפדפן איבד את הקשר לכרטיס הגרפי. נסו לרענן את הדף.</p></div></div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
