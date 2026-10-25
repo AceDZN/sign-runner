@@ -148,15 +148,37 @@ function openIntro(i: number, useFresh: boolean): void {
   $('introRule').textContent = level.rule;
   $('introEx').textContent = level.example;
   const notes: string[] = [];
-  if (level.id === 1) notes.push('המספר שלך הוא הגובה שלך. עברו בשער שמביא אתכם בדיוק לגובה החריץ במנהרה.');
-  if (level.id === 5) notes.push('כאן יש שתי שורות שערים לפני כל מנהרה. בחרו מסלול בכל שורה.');
+  if (level.id === 1) notes.push('המספר שלכם הוא הגובה שלכם. הסרגל משמאל הוא ציר המספרים. עברו בשער שמביא אתכם בדיוק לגובה החריץ במנהרה.');
+  if (level.segments.some((s) => s.rows.length === 2)) notes.push(level.id === 5 ? 'כאן יש שתי שורות שערים לפני כל מנהרה. בחרו מסלול בכל שורה.' : 'שימו לב: בחלק מהמנהרות יש שתי שורות שערים לפני החריץ.');
   if (level.ghost) notes.push('תקועים? החזיקו Shift או את כפתור רוח הרפאים כדי לראות לאן כל שער מביא, אבל המכפיל יורד ל־×1.');
   else notes.push('בלי רוח רפאים. הקצב מהיר יותר. מעלות צלזיוס: מתחת ל־0 קפוא.');
   $('introNote').textContent = notes.join(' ');
+  const links = $('introLinks');
+  links.innerHTML = '';
+  links.append('לשיעור ב־Workbook: ');
+  for (const url of level.modules) {
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.textContent = MODULE_NAMES[url.split('/').pop() ?? ''] ?? url;
+    links.append(a);
+  }
   hud.show(false);
   showScreen('intro');
   $('goBtn').focus();
 }
+
+const MODULE_NAMES: Record<string, string> = {
+  'number-line-expanded': 'ציר המספרים המורחב',
+  'opposite-numbers': 'מספרים נגדיים',
+  'adding-directed': 'חיבור מספרים מכוונים',
+  'subtracting-directed': 'חיסור מספרים מכוונים',
+  'multiplying-directed': 'כפל מספרים מכוונים',
+  'dividing-directed': 'חילוק מספרים מכוונים',
+  'order-of-ops-directed': 'סדר פעולות',
+  'negative-base-powers': 'חזקות בבסיס שלילי',
+};
 
 function startRun(): void {
   audio.unlock();
@@ -202,7 +224,7 @@ function finishLevel(): void {
   const notes: Record<string, string> = {
     S: 'מושלם! בלי התנגשויות ובלי רוח רפאים.',
     A: 'כמעט מושלם. עוד ריצה ל־S?',
-    B: 'עברתם! שימו לב לסימנים ותנסו שוב לדירוג גבוה יותר.',
+    B: 'עברתם! שימו לב לסימנים ונסו שוב לדירוג גבוה יותר.',
     C: 'עברתם את כל המנהרות. ריצה נוספת תהיה חלקה יותר.',
   };
   $('resNote').textContent = notes[rank];
@@ -325,6 +347,7 @@ function handle(e: SimEvent): void {
       break;
     case 'checkpoint':
       hud.setLevel(level.id, level.name, level.segments.length, e.seg);
+      if (level.segments[e.seg].rows.length === 2 && (level.segments[e.seg - 1]?.rows.length ?? 1) === 1) hud.banner('שתי שורות שערים!', 'בחרו מסלול בכל שורה');
       break;
     case 'done':
       world.onDone();

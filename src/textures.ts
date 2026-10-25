@@ -60,7 +60,7 @@ export function gateTexture(label: string, theme: Theme): THREE.CanvasTexture {
   ctx.fillStyle = '#ffffff';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  fitText(ctx, label, 450, 176);
+  fitText(ctx, label, 410, 176);
   ctx.fillText(label, 256, 138);
   ctx.strokeStyle = theme === 'ice' ? '#bfeaff' : '#ff6fd0';
   ctx.lineWidth = 10;

@@ -24,6 +24,8 @@ const MAX_VALUE = 30;
 /** Is this segment fair: exactly one path, exact everywhere, on the scale? */
 export function validSegment(start: number, seg: Segment, maxTunnel = 16): boolean {
   if (Math.abs(seg.tunnel) > maxTunnel || seg.tunnel === start && seg.rows.length === 1) return false;
+  // no +0, −0, ×0, ÷0 gates
+  if (seg.rows.some((row) => row.some((op) => op.kind !== 'pow' && op.n === 0))) return false;
   const paths = allPaths(start, seg.rows);
   for (const p of paths) {
     if (p.final === null) return false;
@@ -41,7 +43,7 @@ function proposal(r: Rng, fam: Family, v: number): { op: Op; distractors: Op[] }
       const t = nz(r, -12, 12);
       const n = t - v;
       if (n === 0 || Math.abs(n) > 14) return null;
-      return { op: add(n), distractors: [add(-n), add(n + pick(r, [-2, -1, 1, 2])), sub(n)] };
+      return { op: add(n), distractors: [add(-n), add(n + pick(r, [-2, -1, 1, 2])), add(-n + pick(r, [-1, 1]))] };
     }
     case 'sub': {
       const n = r() < 0.7 ? nz(r, -9, -1) : nz(r, 1, 9);
@@ -49,13 +51,14 @@ function proposal(r: Rng, fam: Family, v: number): { op: Op; distractors: Op[] }
       return { op: sub(n), distractors: [sub(-n), add(n), sub(n + pick(r, [-1, 1]))] };
     }
     case 'mul': {
-      const opts = [-5, -4, -3, -2, -1, 2, 3, 4, 5].filter((n) => Math.abs(v * n) <= 16);
+      // ×(−1) is the occasional mirror; ×(±1) otherwise practises nothing
+      const opts = [-5, -4, -3, -2, 2, 3, 4, 5].filter((n) => Math.abs(v * n) <= 16);
       if (v === 0 || !opts.length) return null;
-      const n = pick(r, opts);
+      const n = r() < 0.1 ? -1 : pick(r, opts);
       return { op: mul(n), distractors: [mul(-n), sub(-n), add(n)] };
     }
     case 'div': {
-      const opts = [-6, -5, -4, -3, -2, -1, 2, 3, 4, 5, 6].filter((n) => v !== 0 && v % n === 0 && Math.abs(n) !== Math.abs(v) + 100);
+      const opts = [-6, -5, -4, -3, -2, 2, 3, 4, 5, 6].filter((n) => v !== 0 && v % n === 0);
       if (!opts.length) return null;
       const n = pick(r, opts);
       return { op: div(n), distractors: [div(-n), sub(-n), mul(n)] };
@@ -70,18 +73,17 @@ function proposal(r: Rng, fam: Family, v: number): { op: Op; distractors: Op[] }
 
 /** Connector that brings a far-off value back to a friendly range. */
 function connector(r: Rng, v: number, fam: Family): { op: Op; distractors: Op[] } | null {
-  if (fam === 'div') {
-    const n = pick(r, [-4, -3, -2, 2, 3, 4]);
-    const base = v === 0 ? 1 : Math.sign(v) * Math.min(4, Math.abs(v));
-    const target = base * n;
-    const k = target - v;
+  if (fam === 'div' || fam === 'mul') {
+    // land on a value with many divisors (division) or a small one (multiplication)
+    const t = fam === 'div' ? pick(r, [-12, -8, -6, -10, -9, 6, 8, 9, 10, 12, 15, -15]) : pick(r, [-4, -3, -2, 2, 3, 4]);
+    const k = t - v;
     if (k === 0) return null;
-    return { op: add(k), distractors: [add(-k), sub(k), add(k + 1)] };
+    return { op: add(k), distractors: [add(-k), add(k + 2), add(k + 1), add(k - 1)] };
   }
   const t = fam === 'pow' ? nz(r, -4, 4) : nz(r, -6, 6);
   const k = t - v;
   if (k === 0) return null;
-  return { op: add(k), distractors: [add(-k), sub(k), add(k + 1), add(k - 1), sub(-(k + 2))] };
+  return { op: add(k), distractors: [add(-k), add(k + 2), add(k + 1), add(k - 1), add(-k + 1)] };
 }
 
 function shuffleInto(r: Rng, correct: Op, ds: Op[], lane: number): Row {

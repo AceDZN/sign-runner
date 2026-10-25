@@ -132,7 +132,8 @@ test('scoring helpers', () => {
   assert.deepEqual([0, 3, 4, 8, 12, 40].map(multiplierFor), [1, 1, 2, 3, 4, 4]);
   assert.equal(rankFor(0, 0), 'S');
   assert.equal(rankFor(1, 1), 'A');
-  assert.equal(rankFor(4, 2), 'B');
+  assert.equal(rankFor(3, 2), 'B');
+  assert.equal(rankFor(0, 6), 'C', 'leaning on the ghost every time is not a good rank');
   assert.equal(rankFor(9, 0), 'C');
 });
 

@@ -30,6 +30,7 @@ interface GateRow {
   frozenY: number | null;
   flash: number;
   chosen: number;
+  lift: number;
 }
 
 interface Tunnel {
@@ -448,13 +449,13 @@ export class World {
           arches.push(arch);
           const mat = new THREE.MeshBasicMaterial({ map: gateTexture(opLabel(op), theme), transparent: true, depthWrite: false, toneMapped: false, fog: false });
           const panel = new THREE.Mesh(new THREE.PlaneGeometry(2.8, 1.75), mat);
-          panel.position.set(laneX(lane), 2.45, 0.05);
+          panel.position.set(laneX(lane), 2.45, 0.5);
           panel.renderOrder = 5;
           group.add(panel);
           panels.push(panel);
         });
         this.levelGroup.add(group);
-        this.rows.push({ group, arches, panels, seg: si, row: ri, frozenY: null, flash: 0, chosen: -1 });
+        this.rows.push({ group, arches, panels, seg: si, row: ri, frozenY: null, flash: 0, chosen: -1, lift: 0 });
       });
       // the tunnel wall: one slot at the exact height
       const h = altY(seg.tunnel);
@@ -744,7 +745,10 @@ export class World {
 
     // gates ride at your altitude until you pass them
     for (const r of this.rows) {
-      r.group.position.y = r.frozenY ?? this.visY;
+      // a later row in the same segment floats higher so the nearer row doesn't hide it
+      const later = r.seg === sim.seg && r.row > sim.row && r.frozenY === null;
+      r.lift += ((later ? 2.6 : 0) - r.lift) * Math.min(1, dt * 5);
+      r.group.position.y = (r.frozenY ?? this.visY) + r.lift;
       const near = Math.abs(r.group.position.z - rz) < 140;
       r.group.visible = near;
       if (r.flash > 0) {

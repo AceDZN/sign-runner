@@ -110,13 +110,14 @@ export function ruleHe(v: number, op: Op): string {
     case 'mul':
     case 'div': {
       if (v === 0) return op.kind === 'mul' ? 'כל מספר כפול אפס הוא אפס' : 'אפס חלקי מספר הוא אפס';
-      if (op.kind === 'mul' && op.n === -1) return 'כפל ב־(−1) נותן את המספר הנגדי: מראה מעל קו המים';
+      if (op.kind === 'mul' && op.n === -1) return 'כפל ב־(−1) נותן את המספר הנגדי: היפוך לצד השני של קו המים';
       if (op.kind === 'mul' && op.n === 0) return 'כל מספר כפול אפס הוא אפס';
       const same = Math.sign(v) === Math.sign(op.n);
       return same ? 'אותו סימן ← חיובי' : 'סימנים שונים ← שלילי';
     }
     case 'pow':
-      if (v >= 0) return 'חזקה של מספר חיובי היא חיובית';
+      if (v === 0) return 'אפס בחזקה הוא אפס';
+      if (v > 0) return 'חזקה של מספר חיובי היא חיובית';
       if (op.n === 2) return 'מספר זוגי של מינוסים ← חיובי';
       return r < 0 ? 'מספר אי־זוגי של מינוסים ← שלילי' : '';
   }

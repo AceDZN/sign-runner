@@ -38,7 +38,7 @@ export function multiplierFor(combo: number): number {
 
 export type Rank = 'S' | 'A' | 'B' | 'C';
 export function rankFor(crashes: number, hints: number): Rank {
-  const p = crashes + hints * 0.5;
+  const p = crashes + hints;
   if (p === 0) return 'S';
   if (p <= 2) return 'A';
   if (p <= 5) return 'B';
@@ -53,6 +53,8 @@ export interface Explanation {
   tunnel: number;
   /** Shown from the second crash on the same segment: the worked correct path. */
   correct: { from: number; op: Op }[] | null;
+  /** The right two gates, taken in the wrong order. */
+  reversedOrder: boolean;
 }
 
 export type SimEvent =
@@ -227,6 +229,9 @@ export class RunSim {
     this.phase = 'crash';
     this.crashTimer = CRASH_BEATS * this.beat;
     const sol = solutions(this.starts[this.seg], seg)[0];
+    const solOps = sol ? sol.lanes.map((lane, r) => opLabel(seg.rows[r][lane])) : [];
+    const mine = this.choices.map((c) => c.label);
+    const reversedOrder = mine.length === 2 && solOps.length === 2 && mine[0] === solOps[1] && mine[1] === solOps[0] && mine[0] !== mine[1];
     let v = this.starts[this.seg];
     const correct = this.crashesThisSeg >= 2 && sol
       ? sol.lanes.map((lane, r) => { const step = { from: v, op: seg.rows[r][lane] }; v = apply(step.op, v); return step; })
@@ -241,6 +246,7 @@ export class RunSim {
         result: this.value,
         tunnel: seg.tunnel,
         correct,
+        reversedOrder,
       },
     });
   }

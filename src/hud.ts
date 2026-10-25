@@ -53,8 +53,8 @@ export class Hud {
     el('stop', { offset: 1, 'stop-color': '#12062a' }, grad);
     el('rect', { x: COL_X, y: 4, width: COL_W, height: RULER_H - 8, rx: 16, fill: 'url(#pillar)', stroke: '#ff2fb3', 'stroke-width': 3, opacity: 0.92 }, r);
     this.mercury = el('rect', { x: COL_X + 12, y: 0, width: 12, height: 0, rx: 6, fill: '#ff3355', opacity: 0 }, r);
-    this.unitLabel = el('text', { x: COL_X + COL_W / 2, y: -10, 'font-size': 28, fill: '#fff', 'text-anchor': 'middle', opacity: 0 }, r);
-    this.unitLabel.textContent = '°C';
+    this.unitLabel = el('text', { x: COL_X + COL_W / 2, y: -10, 'font-size': 19, fill: '#fff', 'text-anchor': 'middle', 'font-weight': 700 }, r);
+    this.unitLabel.textContent = 'ציר המספרים';
     const g = el('g', { 'clip-path': 'url(#rclip)' }, r);
     this.ticks = el('g', {}, g);
     for (let v = -RANGE; v <= RANGE; v++) {
@@ -80,7 +80,8 @@ export class Hud {
     this.ice = ice;
     document.body.classList.toggle('ice', ice);
     this.mercury.setAttribute('opacity', ice ? '0.95' : '0');
-    this.unitLabel.setAttribute('opacity', ice ? '1' : '0');
+    this.unitLabel.textContent = ice ? '°C' : 'ציר המספרים';
+    this.unitLabel.setAttribute('font-size', ice ? '28' : '19');
     for (const t of Array.from(this.ticks.children)) {
       const v = Number(t.getAttribute('data-v'));
       const label = t.querySelector('text')!;
@@ -205,16 +206,16 @@ export class Hud {
       math.appendChild(d);
     }
     const key = pickKeyStep(ex.steps);
-    $('crashRule').textContent = key ? ruleHe(key.from, key.op) : '';
+    $('crashRule').textContent = ex.reversedOrder ? 'אותן שתי פעולות בסדר הפוך. כאן הסדר משנה את התוצאה.' : key ? ruleHe(key.from, key.op) : '';
     const need = $('crashNeed');
     need.innerHTML = '';
     const unit = this.ice ? '°C' : '';
-    need.append('המנהרה בגובה ', ltr(`${signed(ex.tunnel)}${unit}`), ', הגעת ל־', ltr(`${signed(ex.result)}${unit}`));
+    need.append(this.ice ? 'המנהרה ב־' : 'המנהרה בגובה ', ltr(`${signed(ex.tunnel)}${unit}`), ', הגעתם ל־', ltr(`${signed(ex.result)}${unit}`));
     const fix = $('crashFix');
     if (ex.correct) {
       fix.hidden = false;
       fix.innerHTML = '';
-      fix.append('הדרך שעוברת: ');
+      fix.append('הדרך הנכונה: ');
       const parts = ex.correct.map((c) => expression(c.from, c.op));
       fix.append(ltr(parts.join('   ·   ')));
     } else fix.hidden = true;

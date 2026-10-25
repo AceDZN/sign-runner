@@ -182,7 +182,7 @@ function trapCount(L: Level, m: Misconception): number {
 test('each level catches its target misconception with a crash', () => {
   assert.ok(trapCount(lvl(1), 'addNegMovesUp') >= 3, 'adding a negative moves you up');
   assert.ok(trapCount(lvl(2), 'minusMinusIsMinus') >= 4, 'minus minus is minus');
-  assert.ok(trapCount(lvl(3), 'negTimesNegIsNeg') >= 2, 'negative × negative is negative');
+  assert.ok(trapCount(lvl(3), 'negTimesNegIsNeg') >= 3, 'negative × negative is negative');
   assert.ok(trapCount(lvl(4), 'negTimesNegIsNeg') >= 3, 'negative ÷ negative is negative');
   assert.ok(trapCount(lvl(4), 'divAlwaysSmaller') >= 1, 'dividing always makes it smaller');
   assert.ok(trapCount(lvl(6), 'negSquareIsNeg') >= 2, '(−3)² = −9');

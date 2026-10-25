@@ -57,6 +57,30 @@ test('fresh variants are actually different and practice the level skill', () =>
   }
 });
 
+test('fresh variants avoid degenerate gates and practise the sign rules', () => {
+  for (const L of LEVELS) {
+    for (const seed of SEEDS) {
+      const F = freshLevel(L, seed);
+      for (const s of F.segments) for (const row of s.rows) for (const op of row) {
+        assert.ok(op.kind === 'pow' || op.n !== 0, `level ${L.id} seed ${seed}: no zero operand`);
+        if (L.id === 1) assert.equal(op.kind, 'add', 'fresh level 1 only adds');
+      }
+    }
+  }
+  for (const [id, kind] of [[3, 'mul'], [4, 'div']] as const) {
+    let unit = 0, total = 0;
+    for (const seed of SEEDS) {
+      const F = freshLevel(LEVELS[id - 1], seed);
+      const starts = segmentStarts(F);
+      F.segments.forEach((s, i) => {
+        const sol = solutions(starts[i], s)[0];
+        sol.lanes.forEach((ln, r) => { const op = s.rows[r][ln]; if (op.kind === kind) { total++; if (Math.abs(op.n) === 1) unit++; } });
+      });
+    }
+    assert.ok(unit / total <= 0.2, `level ${id}: ${unit}/${total} correct gates are ×/÷(±1)`);
+  }
+});
+
 test('no constant lane wins a fresh variant', () => {
   for (const L of LEVELS) {
     for (const seed of SEEDS) {
