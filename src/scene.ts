@@ -11,10 +11,10 @@ import { opLabel, signed } from './rules';
 import { Runner, loader } from './runner';
 import { Theme, gateTexture, tunnelLabelTexture, badgeTexture, roadTexture, wallTexture, surfaceTexture, seabedTexture } from './textures';
 
-export const UNIT = 1.2;          // metres of altitude per 1
+export const UNIT = 2.0;          // metres of altitude per 1 (more than body height, so −1 is underwater)
 export const LANE_W = 3.0;        // metres between lane centres
 export const SLOT_BELOW = 0.2;    // slot opening below the exact height
-export const SLOT_ABOVE = 2.3;    // slot opening above it (runner is ~1.75 m)
+export const SLOT_ABOVE = 2.8;    // slot opening above it (runner is ~1.75 m)
 const WALL_HALF = 3 * LANE_W / 2 + 8;
 const SEABED_Y = -36 * UNIT;
 
@@ -35,6 +35,7 @@ interface GateRow {
 interface Tunnel {
   group: THREE.Group;
   frame: THREE.Mesh[];
+  blocks: THREE.Mesh[];
   seg: number;
   pulse: number;
 }
@@ -47,6 +48,22 @@ interface Burst {
 }
 
 const tmpV = new THREE.Vector3();
+
+let dotTex: THREE.Texture | null = null;
+function dotTexture(): THREE.Texture {
+  if (dotTex) return dotTex;
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const ctx = c.getContext('2d')!;
+  const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 30);
+  g.addColorStop(0, 'rgba(255,255,255,1)');
+  g.addColorStop(0.45, 'rgba(255,255,255,0.8)');
+  g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 64, 64);
+  dotTex = new THREE.CanvasTexture(c);
+  return dotTex;
+}
 
 function skyMaterial(): THREE.ShaderMaterial {
   return new THREE.ShaderMaterial({
@@ -135,7 +152,7 @@ export class World {
   private levelGroup = new THREE.Group();
   private rows: GateRow[] = [];
   private tunnels: Tunnel[] = [];
-  private ghostGroup = new THREE.Group();
+  readonly ghostGroup = new THREE.Group();
   private ghostKey = '';
   private bursts: Burst[] = [];
   private shards: THREE.InstancedMesh;
@@ -147,6 +164,8 @@ export class World {
   private gateModel: THREE.Object3D | null = null;
   private jellyModel: THREE.Object3D | null = null;
   private buoyModel: THREE.Object3D | null = null;
+  private mantaModel: THREE.Object3D | null = null;
+  private mantas: THREE.Object3D[] = [];
 
   // presentation state
   private visLane = 1;
@@ -154,6 +173,7 @@ export class World {
   private yFrom = 0;
   private yTo = 0;
   private yT = 1;
+  private yDur = 0.24;
   private camY = 3;
   private camRoll = 0;
   private shake = 0;
@@ -235,7 +255,7 @@ export class World {
     this.scene.add(this.ghostGroup);
     this.scene.add(this.decor);
 
-    this.bubbles = this.buildParticles(500, 0x9ff6ff, 0.18);
+    this.bubbles = this.buildParticles(500, 0x9ff6ff, 0.22);
     this.snow = this.buildParticles(700, 0xffffff, 0.16);
     this.scene.add(this.bubbles, this.snow);
 
@@ -248,7 +268,7 @@ export class World {
 
     this.composer = new EffectComposer(this.renderer);
     this.composer.addPass(new RenderPass(this.scene, this.camera));
-    this.bloom = new UnrealBloomPass(new THREE.Vector2(512, 512), 0.6, 0.5, 0.78);
+    this.bloom = new UnrealBloomPass(new THREE.Vector2(512, 512), 0.55, 0.45, 0.8);
     this.composer.addPass(this.bloom);
     this.composer.addPass(new OutputPass());
   }
@@ -271,12 +291,13 @@ export class World {
     const tryLoad = async (file: string) => {
       try { return (await l.loadAsync(base + file)).scene; } catch { return null; }
     };
-    const [runnerOk, gate, jelly, buoy, station] = await Promise.all([
+    const [runnerOk, gate, jelly, buoy, station, manta] = await Promise.all([
       this.runner.load(base + 'runner.glb'),
       tryLoad('gate-arch.glb'),
       tryLoad('jellyfish.glb'),
       tryLoad('buoy.glb'),
       tryLoad('polar-hut.glb'),
+      tryLoad('manta.glb'),
     ]);
     this.modelsReady.runner = runnerOk;
     const norm = (o: THREE.Object3D | null, size: number, axis: 'x' | 'y' = 'y') => {
@@ -295,6 +316,8 @@ export class World {
     this.jellyModel = norm(jelly, 2.2);
     this.buoyModel = norm(buoy, 5.5);
     this.station = norm(station, 9, 'x');
+    if (manta) manta.rotation.x = -Math.PI / 2; // exported upright; fly flat
+    this.mantaModel = norm(manta, 6, 'x');
     this.modelsReady.gate = !!gate;
     this.modelsReady.jelly = !!jelly;
     this.modelsReady.buoy = !!buoy;
@@ -344,14 +367,14 @@ export class World {
     }
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(p, 3));
-    const pts = new THREE.Points(g, new THREE.PointsMaterial({ color, size, transparent: true, opacity: 0.75, depthWrite: false }));
+    const pts = new THREE.Points(g, new THREE.PointsMaterial({ color, size, map: dotTexture(), transparent: true, opacity: 0.8, depthWrite: false, alphaTest: 0.02 }));
     pts.frustumCulled = false;
     return pts;
   }
 
   private buildRoad(): void {
     const w = 3 * LANE_W + 1.2;
-    this.roadMat = new THREE.MeshStandardMaterial({ map: roadTexture('sea'), emissiveMap: roadTexture('sea'), emissive: 0xffffff, emissiveIntensity: 0.32, roughness: 0.35, metalness: 0.4, transparent: true, opacity: 0.96, color: 0x8a7ab8 });
+    this.roadMat = new THREE.MeshStandardMaterial({ map: roadTexture('sea'), emissiveMap: roadTexture('sea'), emissive: 0xffffff, emissiveIntensity: 0.32, roughness: 0.35, metalness: 0.4, transparent: true, opacity: 0.62, depthWrite: false, color: 0x8a7ab8 });
     (this.roadMat.map as THREE.Texture).repeat.set(1, 30);
     (this.roadMat.emissiveMap as THREE.Texture).repeat.set(1, 30);
     const deck = new THREE.Mesh(new THREE.PlaneGeometry(w, 240), this.roadMat);
@@ -366,9 +389,6 @@ export class World {
       this.road.add(rail);
       this.roadRails.push(rail);
     }
-    const under = new THREE.Mesh(new THREE.BoxGeometry(w + 0.4, 0.5, 240), new THREE.MeshStandardMaterial({ color: 0x0c0620, emissive: 0x2a0b4a, emissiveIntensity: 0.5 }));
-    under.position.set(0, -0.3, -100);
-    this.road.add(under);
   }
 
   private archMesh(theme: Theme): THREE.Object3D {
@@ -380,8 +400,8 @@ export class World {
         if (!m.isMesh) return;
         const mat = (m.material as THREE.MeshStandardMaterial).clone();
         mat.emissive = new THREE.Color(tint);
-        mat.emissiveIntensity = 0.55;
-        if (mat.emissiveMap == null && mat.map) mat.emissiveMap = mat.map;
+        mat.emissiveIntensity = 1.3;
+        if (mat.map) mat.emissiveMap = mat.map;
         m.material = mat;
       });
       return g;
@@ -426,7 +446,7 @@ export class World {
           arch.position.x = laneX(lane);
           group.add(arch);
           arches.push(arch);
-          const mat = new THREE.MeshBasicMaterial({ map: gateTexture(opLabel(op), theme), transparent: true, depthWrite: false, toneMapped: false });
+          const mat = new THREE.MeshBasicMaterial({ map: gateTexture(opLabel(op), theme), transparent: true, depthWrite: false, toneMapped: false, fog: false });
           const panel = new THREE.Mesh(new THREE.PlaneGeometry(2.8, 1.75), mat);
           panel.position.set(laneX(lane), 2.45, 0.05);
           panel.renderOrder = 5;
@@ -457,23 +477,23 @@ export class World {
       const sw = 3 * LANE_W + 0.8;
       const frame: THREE.Mesh[] = [];
       for (const [w, hh, x, y] of [
-        [sw, 0.18, 0, slotTop], [sw, 0.18, 0, slotBot],
-        [0.18, SLOT_ABOVE + SLOT_BELOW, -sw / 2, (slotTop + slotBot) / 2], [0.18, SLOT_ABOVE + SLOT_BELOW, sw / 2, (slotTop + slotBot) / 2],
+        [sw, 0.14, 0, slotTop], [sw, 0.14, 0, slotBot],
+        [0.14, SLOT_ABOVE + SLOT_BELOW, -sw / 2, (slotTop + slotBot) / 2], [0.14, SLOT_ABOVE + SLOT_BELOW, sw / 2, (slotTop + slotBot) / 2],
       ] as const) {
-        const m = new THREE.Mesh(new THREE.BoxGeometry(w, hh, 0.95), fm);
+        const m = new THREE.Mesh(new THREE.BoxGeometry(w, hh, 0.4), fm);
         m.position.set(x, y, 0);
         group.add(m);
         frame.push(m);
       }
       const text = theme === 'ice' ? `${signed(seg.tunnel)}°C` : signed(seg.tunnel);
-      const lab = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 1.8), new THREE.MeshBasicMaterial({ map: tunnelLabelTexture(text, theme), transparent: true, depthWrite: false, toneMapped: false }));
+      const lab = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 1.8), new THREE.MeshBasicMaterial({ map: tunnelLabelTexture(text, theme), transparent: true, depthWrite: false, toneMapped: false, fog: false }));
       lab.position.set(sw / 2 + 2.0, h + 1.0, 0.45);
       lab.renderOrder = 6;
       const lab2 = lab.clone();
       lab2.position.x = -(sw / 2 + 2.0);
       group.add(lab, lab2);
       this.levelGroup.add(group);
-      this.tunnels.push({ group, frame, seg: si, pulse: 0 });
+      this.tunnels.push({ group, frame, blocks: [top, bot], seg: si, pulse: 0 });
     });
     this.shardState = [];
     this.shards.count = 0;
@@ -523,6 +543,16 @@ export class World {
       let j: THREE.Object3D;
       if (this.jellyModel) {
         j = SkeletonUtils.clone(this.jellyModel);
+        const tint = [0xff6fd0, 0x7dff9a, 0x3cf2ff][i % 3];
+        j.traverse((o) => {
+          const m = o as THREE.Mesh;
+          if (!m.isMesh) return;
+          const mat = (m.material as THREE.MeshStandardMaterial).clone();
+          mat.transparent = true; mat.opacity = 0.72; mat.depthWrite = false;
+          mat.emissive = new THREE.Color(tint); mat.emissiveIntensity = 0.9;
+          if (mat.map) mat.emissiveMap = mat.map;
+          m.material = mat;
+        });
       } else {
         j = new THREE.Group();
         const col = [0xff6fd0, 0x7dff9a, 0x3cf2ff][i % 3];
@@ -536,7 +566,7 @@ export class World {
         }
       }
       const side = i % 2 ? 1 : -1;
-      j.userData = { side, depth: -(4 + (i * 7) % 22) * UNIT, x: side * (9 + (i * 5) % 14), z: -i * 16, phase: i * 1.7, scale: 0.8 + (i % 4) * 0.25 };
+      j.userData = { side, rel: ((i * 5) % 15) - 9, x: side * (9 + (i * 5) % 14), z: -i * 16, phase: i * 1.7, scale: 0.8 + (i % 4) * 0.25 };
       j.scale.setScalar(j.userData.scale);
       this.decor.add(j);
       this.jellies.push(j);
@@ -560,6 +590,23 @@ export class World {
       this.decor.add(b);
       this.buoys.push(b);
     }
+    this.mantas = [];
+    if (this.mantaModel) {
+      for (let i = 0; i < 5; i++) {
+        const m = this.mantaModel.clone(true);
+        m.traverse((o) => {
+          const mm = o as THREE.Mesh;
+          if (!mm.isMesh) return;
+          const mat = (mm.material as THREE.MeshStandardMaterial).clone();
+          mat.emissive = new THREE.Color(0xff6fd0); mat.emissiveIntensity = 1.1;
+          if (mat.map) mat.emissiveMap = mat.map;
+          mm.material = mat;
+        });
+        m.userData = { side: i % 2 ? 1 : -1, rel: 12 + (i * 7) % 14, x: 26 + (i * 9) % 24, z: -60 - i * 55, phase: i * 2.1 };
+        this.decor.add(m);
+        this.mantas.push(m);
+      }
+    }
     if (this.station) {
       this.station.position.set(17, 0, -60);
       this.station.rotation.y = -0.6;
@@ -575,6 +622,7 @@ export class World {
     this.yFrom = this.visY;
     this.yTo = altY(to);
     this.yT = 0;
+    this.yDur = Math.min(0.5, 0.2 + Math.abs(to - from) * 0.018);
     this.runner.setPose(to > from ? 'rise' : to < from ? 'dive' : 'run');
     this.spawnBurst(new THREE.Vector3(laneX(lane), this.visY + 1.6, this.runner.root.position.z - 0.5), to >= from ? 0xffb347 : 0x3cf2ff, 40);
   }
@@ -627,7 +675,7 @@ export class World {
     }
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(p, 3));
-    const pts = new THREE.Points(g, new THREE.PointsMaterial({ color, size: 0.22, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+    const pts = new THREE.Points(g, new THREE.PointsMaterial({ color, size: 0.3, map: dotTexture(), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
     pts.frustumCulled = false;
     this.scene.add(pts);
     this.bursts.push({ points: pts, vel, life: 0.8, max: 0.8 });
@@ -654,10 +702,12 @@ export class World {
     preview.forEach((v, lane) => {
       const good = lastRow && v === sim.segment.tunnel;
       const col = good ? 0x7dff9a : 0x9fd8ff;
-      const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.3, 0.9, 4, 10), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.35, depthWrite: false }));
+      const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.3, 0.9, 4, 10), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.45, depthWrite: false, depthTest: false, fog: false }));
+      body.renderOrder = 20;
       body.position.set(laneX(lane), altY(v) + 0.9, z);
-      const badge = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 0.7), new THREE.MeshBasicMaterial({ map: badgeTexture(sim.level.skin === 'ice' ? `${signed(v)}°` : signed(v), good), transparent: true, depthWrite: false, toneMapped: false }));
-      badge.position.set(laneX(lane), altY(v) + 2.2, z);
+      const badge = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 0.7), new THREE.MeshBasicMaterial({ map: badgeTexture(sim.level.skin === 'ice' ? `${signed(v)}°` : signed(v), good), transparent: true, depthWrite: false, depthTest: false, fog: false, toneMapped: false }));
+      badge.renderOrder = 21;
+      badge.position.set(laneX(lane), altY(v) + 0.9, z + 0.05);
       this.ghostGroup.add(body, badge);
     });
   }
@@ -673,7 +723,7 @@ export class World {
     // runner position from the sim
     this.visLane += (sim.lane - this.visLane) * Math.min(1, dt * 16);
     if (this.yT < 1) {
-      this.yT = Math.min(1, this.yT + dt / 0.24);
+      this.yT = Math.min(1, this.yT + dt / this.yDur);
       const e = 1 - Math.pow(1 - this.yT, 3);
       this.visY = this.yFrom + (this.yTo - this.yFrom) * e;
     } else {
@@ -711,17 +761,22 @@ export class World {
     for (const t of this.tunnels) {
       t.group.visible = Math.abs(t.group.position.z - rz) < 260;
       const isNext = t.seg === sim.seg;
-      const pulse = isNext ? 2.2 + Math.sin(this.time * 6) * 0.8 : 1.6;
+      const pulse = isNext ? 1.3 + Math.sin(this.time * 6) * 0.5 : 0.9;
       if (t.pulse > 0) t.pulse = Math.max(0, t.pulse - pdt * 1.5);
-      for (const f of t.frame) (f.material as THREE.MeshStandardMaterial).emissiveIntensity = pulse + t.pulse * 6;
+      for (const f of t.frame) (f.material as THREE.MeshStandardMaterial).emissiveIntensity = pulse + t.pulse * 1.2;
+      const behind = t.group.position.z > rz + 0.4 && this.crashT < 0;
+      for (const b of t.blocks) b.visible = !behind;
     }
 
     this.showGhost(sim, ghost);
+    // ghosts keep a readable size on screen however far ahead they are
+    for (const c of this.ghostGroup.children) c.scale.setScalar(Math.max(1, Math.abs(c.position.z - rz) / 13));
 
     // camera: behind and above, looking ahead and a little toward the next tunnel slot
     const under = this.camera.position.y < 0;
     const tunnelY = altY(sim.segment.tunnel);
-    this.camY += (this.visY + 3.5 - this.camY) * Math.min(1, dt * 5);
+    const camLift = this.visY < -0.01 ? Math.min(3.5, Math.max(1.5, -0.45 - this.visY)) : 3.5;
+    this.camY += (this.visY + camLift - this.camY) * Math.min(1, dt * 6);
     const cx = laneX(this.visLane) * 0.55;
     this.camera.position.set(cx, this.camY, rz + 5.8 + (this.crashT >= 0 ? 1.5 : 0));
     const lookY = this.visY + 1.5 + THREE.MathUtils.clamp(tunnelY - this.visY, -6, 6) * 0.22;
@@ -760,14 +815,15 @@ export class World {
     // medium: sky above zero, sea (or ice) below
     const k = THREE.MathUtils.smoothstep(-this.camera.position.y, -0.6, 0.6);
     const ice = this.theme === 'ice';
-    const above = new THREE.Color(ice ? 0x6aa8d8 : 0x2a0b4a);
-    const below = new THREE.Color(ice ? 0x7cc6ec : 0x02364a);
+    const above = new THREE.Color(ice ? 0x123a66 : 0x2a0b4a);
+    const below = new THREE.Color(ice ? 0x174a78 : 0x07506e);
     this.fog.color.copy(above).lerp(below, k);
-    this.fog.near = THREE.MathUtils.lerp(ice ? 30 : 40, 4, k);
-    this.fog.far = THREE.MathUtils.lerp(ice ? 220 : 260, ice ? 120 : 95, k);
+    this.fog.near = THREE.MathUtils.lerp(ice ? 30 : 40, 12, k);
+    this.fog.far = THREE.MathUtils.lerp(ice ? 220 : 260, ice ? 130 : 125, k);
     this.skyMat.uniforms.uUnder.value = k;
     (this.scene.background as THREE.Color).copy(this.fog.color);
-    this.hemi.color.set(ice ? 0xdff4ff : 0xb08cff).lerp(new THREE.Color(ice ? 0xbfe6ff : 0x3cf2ff), k);
+    this.hemi.color.set(ice ? 0xdff4ff : 0xb08cff).lerp(new THREE.Color(ice ? 0xbfe6ff : 0x5ff6ff), k);
+    this.hemi.intensity = 1.3 + k * 0.9;
     this.runnerLight.color.set(k > 0.5 ? 0x7dff9a : 0x3cf2ff);
     this.stars.visible = k < 0.5;
     this.mountains.visible = k < 0.5;
@@ -823,10 +879,20 @@ export class World {
       const u = j.userData;
       while (u.z > cz + 20) u.z -= 230;
       while (u.z < cz - 210) u.z += 230;
-      j.position.set(u.x + Math.sin(this.time * 0.4 + u.phase) * 1.5, u.depth + Math.sin(this.time * 0.9 + u.phase) * 1.2, u.z);
+      const baseY = Math.min(-2.5, this.camera.position.y + u.rel);
+      j.position.set(u.x + Math.sin(this.time * 0.4 + u.phase) * 1.5, baseY + Math.sin(this.time * 0.9 + u.phase) * 1.2, u.z);
       const s = u.scale * (1 + Math.sin(this.time * 2.2 + u.phase) * 0.08);
       j.scale.set(s, u.scale * (1 - Math.sin(this.time * 2.2 + u.phase) * 0.1), s);
       j.rotation.y += dt * 0.3;
+    }
+    for (const m of this.mantas) {
+      const u = m.userData;
+      while (u.z > cz + 30) u.z -= 280;
+      u.z += dt * 4;
+      const baseY = Math.max(6, this.camera.position.y + u.rel);
+      m.position.set(u.side * u.x + Math.sin(this.time * 0.3 + u.phase) * 3, baseY + Math.sin(this.time * 0.8 + u.phase) * 1.5, u.z);
+      m.rotation.z = Math.sin(this.time * 0.8 + u.phase) * 0.25 * u.side;
+      m.visible = this.theme === 'sea' && this.camera.position.y > 0;
     }
     for (const b of this.buoys) {
       const u = b.userData;
@@ -882,9 +948,9 @@ export class World {
 
   /** Screen position (CSS px) of a point beside the runner, for the big readout. */
   readoutAnchor(w: number, h: number): { x: number; y: number; visible: boolean } {
-    tmpV.copy(this.runner.root.position).add(new THREE.Vector3(-1.9, 0.6, 0));
+    tmpV.copy(this.runner.root.position).add(new THREE.Vector3(-2.0, 1.1, 0));
     tmpV.project(this.camera);
-    return { x: (tmpV.x * 0.5 + 0.5) * w, y: (-tmpV.y * 0.5 + 0.5) * h, visible: tmpV.z < 1 };
+    return { x: Math.max(70, (tmpV.x * 0.5 + 0.5) * w), y: Math.min(h - 130, (-tmpV.y * 0.5 + 0.5) * h), visible: tmpV.z < 1 };
   }
 
   get rendererInfo() { return this.renderer.info; }

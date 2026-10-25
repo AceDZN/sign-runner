@@ -6,6 +6,7 @@ import { chromium } from 'playwright';
 import { mkdirSync, writeFileSync } from 'node:fs';
 
 const out = process.argv[2] ?? 'docs/screenshots';
+const QUICK = process.argv.includes('--quick'); // visuals only, skip full play-throughs
 mkdirSync(out, { recursive: true });
 const base = 'http://localhost:5211/?test';
 const browser = await chromium.launch({ channel: 'chrome', args: ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist'] });
@@ -141,7 +142,7 @@ report.push({ check: 'ghost preview', held: ghostState.ghostHeld, preview: ghost
 
 // 2. full play-throughs of every level with lane inputs
 const results = [];
-for (let i = 0; i < 7; i++) {
+for (let i = 0; i < (QUICK ? 0 : 7); i++) {
   const end = await playLevel(p, i, i === 1 ? new Set([2]) : new Set());
   results.push({ level: i + 1, phase: end.phase, mode: end.mode, rank: end.rank, crashes: end.crashes, hints: end.hints, score: end.score });
   if (i === 1) await shot(p, '08-results-level2');

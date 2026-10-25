@@ -166,12 +166,12 @@ export class RunSim {
         this.crossTunnel();
         if (this.phase !== 'run') return;
         // advance into the next segment; the checkpoint is the segment start
-        this.seg++;
-        if (this.seg >= this.level.segments.length) {
-          this.phase = 'done';
+        if (this.seg + 1 >= this.level.segments.length) {
+          this.phase = 'done'; // seg stays on the last segment so `segment` is always valid
           this.events.push({ type: 'done', rank: this.rank });
           return;
         }
+        this.seg++;
         this.row = 0;
         this.attempt = 1;
         this.crashesThisSeg = 0;

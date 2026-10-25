@@ -77,6 +77,8 @@ button { font-family: inherit; }
 .crash .count { display: inline-flex; width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--cyan); align-items: center; justify-content: center; font-weight: 800; }
 
 .lanes-touch { position: absolute; inset: 0; }
+.target-chip { display: none; position: absolute; top: calc(max(8px, env(safe-area-inset-top)) + 46px); left: 8px; background: var(--panel); border: 2px solid var(--magenta); border-radius: 12px; padding: 3px 10px; font-weight: 800; font-size: 17px; box-shadow: 0 0 10px rgba(255, 47, 179, 0.5); }
+.target-chip bdi { color: #ffd6f5; }
 
 /* ---------- screens ---------- */
 .screen { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px; background: radial-gradient(ellipse at 50% 30%, rgba(107, 43, 255, 0.35), rgba(18, 5, 38, 0.8) 70%); overflow-y: auto; }
@@ -135,7 +137,10 @@ body.reduced *, body.reduced *::before { animation-duration: 0.01ms !important; 
   .pill { font-size: 17px; padding: 4px 9px; border-radius: 10px; }
   .level-pill { top: max(8px, env(safe-area-inset-top)); right: 8px; font-size: 14px; padding: 5px 9px 7px; }
   .dots i { width: 8px; height: 8px; }
-  .ruler { top: 15vh; height: 62vh; left: 2px; }
+  .ruler { top: 17vh; height: 52vh; left: 2px; }
+  .target-chip { display: block; }
+  .ctl .lbl { white-space: nowrap; }
+  .ctl.ghost .hold { display: none; }
   .readout { font-size: 62px; }
   .crash { right: 50%; transform: translateX(50%); top: auto; bottom: 92px; width: calc(100% - 24px); padding: 10px 12px; animation: none; }
   .crash .boom { font-size: 36px; }

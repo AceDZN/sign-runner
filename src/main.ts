@@ -340,6 +340,10 @@ function demoLane(): number {
   return sol.lanes[Math.min(sim.row, sol.lanes.length - 1)];
 }
 
+function currentGhost(): number[] | null {
+  return mode === 'play' && level.ghost && sim.ghostHeld ? sim.ghostPreview() : null;
+}
+
 function tick(dt: number, render: boolean): void {
   const playing = mode === 'play';
   const demo = mode === 'title' || mode === 'intro' && false;
@@ -371,13 +375,14 @@ function tick(dt: number, render: boolean): void {
     }
   }
   const pdt = mode === 'paused' ? 0 : dt;
-  const ghost = playing && level.ghost && sim.ghostHeld ? sim.ghostPreview() : null;
+  const ghost = currentGhost();
   $('ghostBtn').classList.toggle('active', !!ghost);
   world.update(pdt, sim, ghost, render);
   if (playing || mode === 'paused') {
     hud.updateRuler(sim.value, sim.phase === 'done' ? sim.value : sim.segment.tunnel, pdt);
     const a = world.readoutAnchor(window.innerWidth, window.innerHeight);
-    hud.setReadout(sim.value, a.x, a.y, a.visible);
+    const minX = window.innerWidth < 760 ? 160 : 260;
+    hud.setReadout(sim.value, Math.max(minX, a.x), a.y, a.visible);
     hud.setStats(sim.score, sim.multiplier, sim.combo);
     if (sim.phase === 'crash') hud.setCrashCount(Math.ceil(sim.crashTimer / sim.beat) - 0);
     const under = Math.min(1, Math.max(0, -world.camera.position.y / 3));
@@ -399,7 +404,7 @@ function frame(now: number): void {
     }
   }
   if (!externalClock) tick(dt, true);
-  else world.update(0, sim, null, true);
+  else world.update(0, sim, currentGhost(), true);
   requestAnimationFrame(frame);
 }
 
@@ -458,6 +463,7 @@ window.advanceTime = (ms: number) => {
 };
 window.__signRunner = { learning: () => learningLog.slice(), crashBeats: CRASH_BEATS, start: (i, f = false) => { openIntro(i, f); startRun(); } };
 
+if (TEST) (window as unknown as { __world: World }).__world = world;
 buildTitle();
 showScreen('title');
 requestAnimationFrame(frame);

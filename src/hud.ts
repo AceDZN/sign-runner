@@ -53,7 +53,7 @@ export class Hud {
     el('stop', { offset: 1, 'stop-color': '#12062a' }, grad);
     el('rect', { x: COL_X, y: 4, width: COL_W, height: RULER_H - 8, rx: 16, fill: 'url(#pillar)', stroke: '#ff2fb3', 'stroke-width': 3, opacity: 0.92 }, r);
     this.mercury = el('rect', { x: COL_X + 12, y: 0, width: 12, height: 0, rx: 6, fill: '#ff3355', opacity: 0 }, r);
-    this.unitLabel = el('text', { x: COL_X + COL_W / 2, y: 34, 'font-size': 28, fill: '#fff', 'text-anchor': 'middle', opacity: 0 }, r);
+    this.unitLabel = el('text', { x: COL_X + COL_W / 2, y: -10, 'font-size': 28, fill: '#fff', 'text-anchor': 'middle', opacity: 0 }, r);
     this.unitLabel.textContent = '°C';
     const g = el('g', { 'clip-path': 'url(#rclip)' }, r);
     this.ticks = el('g', {}, g);
@@ -85,6 +85,7 @@ export class Hud {
       const v = Number(t.getAttribute('data-v'));
       const label = t.querySelector('text')!;
       label.textContent = ice ? `${signed(v)}°` : signed(v);
+      label.setAttribute('font-size', v === 0 ? '32' : ice ? '24' : '27');
     }
     const pillar = this.ruler.querySelector('rect[fill="url(#pillar)"]');
     pillar?.setAttribute('stroke', ice ? '#8fd8ff' : '#ff2fb3');
@@ -97,6 +98,13 @@ export class Hud {
 
   /** Per frame: scroll the ruler so both you and the tunnel are on it. */
   updateRuler(value: number, tunnel: number, dt: number): void {
+    // phones: just the pillar; the callout moves to a chip under the pills
+    const narrow = window.innerWidth < 760;
+    const vb = narrow ? `0 0 ${COL_X + COL_W + 6} ${RULER_H}` : `0 0 330 ${RULER_H}`;
+    if (this.ruler.getAttribute('viewBox') !== vb) this.ruler.setAttribute('viewBox', vb);
+    const chip = this.ice ? `${signed(tunnel)}°C` : signed(tunnel);
+    const chipEl = $('targetChipVal');
+    if (chipEl.textContent !== chip) chipEl.textContent = chip;
     const lo = Math.min(value, tunnel) - 2;
     const hi = Math.max(value, tunnel) + 2;
     const wantSpan = Math.max(14, hi - lo);
@@ -112,7 +120,7 @@ export class Hud {
       t.style.display = inView ? '' : 'none';
       if (!inView) continue;
       // thin the labels when zoomed out
-      const step = scale < 16 ? 5 : scale < 28 ? 2 : 1;
+      const step = scale < 16 ? 5 : scale < (this.ice ? 34 : 28) ? 2 : 1;
       (t.querySelector('text') as SVGTextElement).style.display = v % step === 0 ? '' : 'none';
       t.setAttribute('transform', `translate(0 ${y.toFixed(1)})`);
     }

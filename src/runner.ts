@@ -79,14 +79,14 @@ export class Runner {
     this.body.add(g);
   }
 
-  /** Swap in the Tripo hero. Height is normalized to ~1.75 m, facing −z (away from camera). */
+  /** Swap in the Tripo hero. Height is normalized to ~2.1 m (game scale), facing −z (away from camera). */
   async load(url: string): Promise<boolean> {
     try {
       const gltf = await loader().loadAsync(url);
       const model = gltf.scene;
       const box = new THREE.Box3().setFromObject(model);
       const size = box.getSize(new THREE.Vector3());
-      const s = 1.75 / Math.max(0.01, size.y);
+      const s = 2.1 / Math.max(0.01, size.y);
       model.scale.setScalar(s);
       box.setFromObject(model);
       model.position.y -= box.min.y;
@@ -100,6 +100,13 @@ export class Runner {
       });
       if (this.stand) this.body.remove(this.stand);
       this.body.add(model);
+      // clips are "in place" but `run` holds the hips forward; strip x/z root motion so crossfades don't slide
+      for (const clip of gltf.animations) {
+        for (const track of clip.tracks) {
+          if (!/Hips\.position$/.test(track.name)) continue;
+          for (let i = 0; i < track.values.length; i += 3) { track.values[i] = 0; track.values[i + 2] = 0; }
+        }
+      }
       this.mixer = new THREE.AnimationMixer(model);
       this.clipNames = gltf.animations.map((c) => c.name);
       for (const pose of Object.keys(CLIP_PATTERNS) as Pose[]) {

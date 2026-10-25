@@ -40,6 +40,10 @@ test('every level is completable end-to-end with lane inputs, clean run ranks S'
     assert.equal(sim.rank, 'S');
     assert.equal(sim.value, L.segments[L.segments.length - 1].tunnel);
     assert.ok(events.some((e) => e.type === 'done'));
+    assert.equal(sim.seg, L.segments.length - 1, 'segment index stays valid after the finish');
+    assert.ok(sim.segment, 'the scene can still read the last segment');
+    sim.step(1); // stepping a finished run is a no-op
+    assert.equal(sim.phase, 'done');
     assert.ok(sim.learning.every((e) => e.firstUnaided && e.outcome === 'pass'));
   });
 });

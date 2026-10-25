@@ -1,0 +1,24 @@
+Sign Runner mockups ready (2026-10-25). 1672x941, JPEG q85. Prompts + per-image notes in PROMPTS.md.
+
+docs/visual-targets/sr-target-01-first30.jpg     first 30 s, above the waterline, gates +3 / +(−3) / +5, slot wall +3
+docs/visual-targets/sr-target-02-underwater.jpg  below zero, jellyfish, gates −(−3) / −3 / +(−3), readout −2
+docs/visual-targets/sr-target-03-crash.jpg       crash into wall +8 after ×(−2), crash card on the right
+docs/visual-targets/sr-target-04-ice-station.jpg level 7 Ice Station, thermometer ruler, two gate rows
+
+Warnings: image 03 shows the worked math RTL-flipped ("−8 = (−2)× 4", "8−") — render math LTR.
+Image 02's values are not a valid level (two lanes reach −5). Copy layout, not values.
+Tripo models: in progress, see ASSETS.md when done.
+
+UPDATE 2026-10-26 00:08 — props optimized and ready in public/models/ (static, no skins/animations):
+  gate-arch.glb  16,967 tris  377 KB  (empty-centre neon arch, mount label panel inside)
+  buoy.glb        9,955 tris  126 KB
+  jellyfish.glb  10,807 tris  122 KB
+  polar-hut.glb  11,802 tris  240 KB  (red hut, antenna, dish, dial thermometer)
+  manta.glb       7,683 tris  103 KB
+Hero (rigged, Mixamo skeleton) still collecting preset clips in Tripo; ETA ~30-40 min. Full details will be in ASSETS.md.
+
+UPDATE 2026-10-26 00:50 — hero ready: public/models/runner.glb  19,436 tris  888 KB
+  skin: 65 Mixamo joints, root mixamorig:Hips
+  clips: run (1.25 s loop), jump (2.21 s), dive (2.71 s), hit_to_body_01 (1.29 s), cheer (12.08 s)
+  quirk: run clip holds Hips at z≈+0.52 (others ≈0) — offset or strip Hips x/z translation.
+  Loader needs MeshoptDecoder. Details: ASSETS.md.
