@@ -4,3 +4,4 @@ test-output
 output
 .DS_Store
 *.log
+assets-src/
